@@ -11,15 +11,16 @@ from azure.mgmt.keyvault import KeyVaultManagementClient
 from azure.keyvault import KeyVaultClient,KeyVaultId
 import automationassets
 
+tmpfile = "/tmp/logs.csv"
 
+# LogAnalytics init
 # Details of query.  Modify these to your requirements.
 query = "Type=\"Syslog\" TimeGenerated>NOW-12HOURS"
 end_time = datetime.datetime.utcnow()
 start_time = end_time - datetime.timedelta(hours=24)
 num_results = 10000  # If not provided, a default of 10 results will be used.
 
-                                                                                                                                                                                          
-# Get access token                                                                           
+# Get access token 
 context = adal.AuthenticationContext('https://login.microsoftonline.com/' + automationassets.get_automation_variable("tenant_id"))      
 token_response = context.acquire_token_with_client_credentials('https://management.core.windows.net/', automationassets.get_automation_variable("application_id"), automationassets.get_automation_variable("application_key"))
 access_token = token_response.get('accessToken')                                                                                       
@@ -29,9 +30,15 @@ headers = {
     "Authorization": 'Bearer ' + access_token,                                                                                         
     "Content-Type":'application/json'                                                                                                  
 }                                                                                                                                      
+
+# Build search parameters from query details
+search_params = {
+        "query": query,
+        "top": num_results
+        }
                                                                                                                                        
 # Blob init                                                                                                                            
-block_blob_service = BlockBlobService(account_name='webdemopaas1', account_key=automationassets.get_automation_variable("blobstorage-key"))
+block_blob_service = BlockBlobService(account_name=automationassets.get_automation_variable("blobservicename"), account_key=automationassets.get_automation_variable("blobstorage-key"))
 
                                                                                                                                                                           
 #  Oms init                                                                                                                                                                
@@ -42,12 +49,6 @@ uri_resourcegroup = uri_subscription + '/resourcegroups/'+ automationassets.get_
 uri_workspace = uri_resourcegroup + '/providers/Microsoft.OperationalInsights/workspaces/' + automationassets.get_automation_variable("workspace") 
 uri_search = uri_workspace + '/search'                                                                                                                                    
                                                                                                                                                                           
-# Build search parameters from query details                                                                                                                              
-search_params = {                                                                                                                                                         
-        "query": query,                                                                                                                                                   
-        "top": num_results                                                                                                                                                
-        }                       
-
 
 def getDataFromLogAnalytics():                                                                                                                                            
                                                                                                                                                                           
@@ -65,7 +66,7 @@ def getDataFromLogAnalytics():
     json_parsed = json.loads(json_data)                                                                                                                                   
                                                                                                                                                                           
     try:                                                                                                                                                                  
-        log_data = open('/tmp/logs.csv', 'w')                                                                                                                             
+        log_data = open(tmpfile, 'w')                                                                                                                             
         csvwriter = csv.writer(log_data)                                                                                                                                  
         for index in range(len(json_parsed)):                                                                                                                             
             log_entry = json_parsed[index]                                                                                                                                
@@ -89,4 +90,4 @@ def persistToBlobStorage(localFilename,remoteFilename):
 
 if __name__ == "__main__":                                                                                                                                                
     getDataFromLogAnalytics()                                                                                                                                             
-    persistToBlobStorage('/tmp/logs.csv','logging-'+str(datetime.datetime.utcnow()))   
+    persistToBlobStorage(tmpfile,'logging-'+str(datetime.datetime.utcnow()))   
