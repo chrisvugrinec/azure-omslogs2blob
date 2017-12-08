@@ -7,8 +7,6 @@ from azure.storage.blob import BlockBlobService
 from azure.storage.blob import ContentSettings
 import datetime
 from azure.common.credentials import ServicePrincipalCredentials
-from azure.mgmt.keyvault import KeyVaultManagementClient
-from azure.keyvault import KeyVaultClient,KeyVaultId
 import automationassets
 
 tmpfile = "/tmp/logs.csv"
